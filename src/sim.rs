@@ -1,21 +1,21 @@
 mod sim{
-    use std::{vec, option::Iter};
+    use std::{vec, option::Iter, rc::Rc};
     use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Rotation, Rotation2, Point2};
 
-    struct LinkageConnection<'a> {
+    struct LinkageConnection {
         index_joint_from: usize,
-        linkage_joint_to: &'a Linkage<'a>,
+        linkage_joint_to: Rc<Linkage>,
         index_joint_to: usize,
     }
-    pub struct Linkage<'a> {
+    pub struct Linkage {
         joints: Vec<Vector2<f64>>,
         lines: Vec<[Vector2<f64>; 2]>,
         rotation: Basis2<f64>,
         tranceform: Vector2<f64>,
-        connection: Vec<LinkageConnection<'a>>,
+        connection: Vec<LinkageConnection>,
     }
 
-    impl Linkage<'_> {
+    impl Linkage {
         pub fn new() -> Self {
             Linkage{
                 joints: Vec::new(),
@@ -40,8 +40,8 @@ mod sim{
             }
             ret
         }
-        pub fn add_connection(&mut self, index_from: usize, linkage_to: &mut Self, index_to: usize) -> &Self {
-            linkage_to.connection.push(LinkageConnection { index_joint_from: index_to, linkage_joint_to: self, index_joint_to: index_from });
+        pub fn add_connection(self, index_from: usize, linkage_to: Rc<Self>, index_to: usize) -> Self {
+            linkage_to.connection.push(LinkageConnection { index_joint_from: index_to, linkage_joint_to: Rc::new(&self), index_joint_to: index_from });
             self.connection.push(LinkageConnection { index_joint_from: index_from, linkage_joint_to: linkage_to, index_joint_to: index_to });
             self
         }
