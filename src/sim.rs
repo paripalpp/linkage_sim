@@ -1,18 +1,16 @@
 mod sim{
     use std::{vec, option::Iter, rc::Rc};
-    use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Rotation, Rotation2, Point2};
+    use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Transform, Point2, Matrix3};
 
-    struct LinkageConnection {
-        index_joint_from: usize,
-        linkage_joint_to: Rc<Linkage>,
-        index_joint_to: usize,
+    struct PinJoint {
+        linkage: Vec<Rc<Linkage>>,
+        joint_index: Vec<usize>,
+        tranceform: Point2<f64>,
     }
     pub struct Linkage {
         joints: Vec<Vector2<f64>>,
         lines: Vec<[Vector2<f64>; 2]>,
-        rotation: Basis2<f64>,
-        tranceform: Vector2<f64>,
-        connection: Vec<LinkageConnection>,
+        tranceform: Matrix3<f64>
     }
 
     impl Linkage {
@@ -20,9 +18,7 @@ mod sim{
             Linkage{
                 joints: Vec::new(),
                 lines: Vec::new(),
-                rotation: Rotation2::from_angle(Rad(0.0)),
-                tranceform: Vector2 { x: 0.0, y: 0.0 },
-                connection: Vec::new(),
+                tranceform: Transform::<Point2<f64>>::look_at_rh(Point2::from([0.,0.]), Point2::from([0.,0.]), Vector2::from([0.,0.])),
             }
         }
         pub fn from_points(points: &[Vector2<f64>]) -> Self {
