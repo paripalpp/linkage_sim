@@ -1,16 +1,25 @@
 mod sim{
-    use std::{vec, option::Iter, rc::Rc};
+    use std::{vec, option::Iter, rc::Rc, cell::RefCell, ops::Index, pin::Pin};
     use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Transform, Point2, Matrix3};
 
+    pub struct Mechanism {
+        joints: Vec<PinJoint>,
+        linkages: Vec<Rc<RefCell<Linkage>>>,
+    }
+
     struct PinJoint {
-        linkage: Vec<Rc<Linkage>>,
-        joint_index: Vec<usize>,
-        tranceform: Point2<f64>,
+        linkages: Vec<Rc<RefCell<Linkage>>>,
+        joint_indexs: Vec<usize>,
+        tranceform: JointTranceform,
+    }
+
+    enum JointTranceform {
+        FixedTo(Point2<f64>),
+        Floated,
     }
     pub struct Linkage {
         joints: Vec<Vector2<f64>>,
         lines: Vec<[Vector2<f64>; 2]>,
-        tranceform: Matrix3<f64>
     }
 
     impl Linkage {
@@ -18,7 +27,6 @@ mod sim{
             Linkage{
                 joints: Vec::new(),
                 lines: Vec::new(),
-                tranceform: Transform::<Point2<f64>>::look_at_rh(Point2::from([0.,0.]), Point2::from([0.,0.]), Vector2::from([0.,0.])),
             }
         }
         pub fn from_points(points: &[Vector2<f64>]) -> Self {
@@ -29,17 +37,64 @@ mod sim{
             }
             ret
         }
-        pub fn get_joints(&self) -> Vec<Vector2<f64>>{
-            let mut ret = Vec::new();
-            for joint in &self.joints {
-                ret.push(self.rotation.rotate_vector(joint.clone()) + self.tranceform);
-            }
-            ret
+        pub fn get_vector(&self, index_from: usize, index_to: usize) -> Vector2<f64> {
+            self.joints[index_to] - self.joints[index_from]
         }
-        pub fn add_connection(self, index_from: usize, linkage_to: Rc<Self>, index_to: usize) -> Self {
-            linkage_to.connection.push(LinkageConnection { index_joint_from: index_to, linkage_joint_to: Rc::new(&self), index_joint_to: index_from });
-            self.connection.push(LinkageConnection { index_joint_from: index_from, linkage_joint_to: linkage_to, index_joint_to: index_to });
+        pub fn get_vector_from_origin(&self, index_to: usize) -> Vector2<f64> {
+            self.joints[index_to]
+        }
+    }
+
+    impl PinJoint{
+        pub fn new() -> Self {
+            PinJoint {
+                linkages: Vec::new(),
+                joint_indexs: Vec::new(),
+                tranceform: JointTranceform::Floated,
+            }
+        }
+        fn check_index_len(linkage: &Linkage, index: usize) -> Result<(),()> {
+            if linkage.joints.len() > index {
+                Result::Ok(())
+            } else {
+                Result::Err(())
+            }
+        }
+        pub fn from_linkage<const NUM: usize>(linkages: [Rc<RefCell<Linkage>>; NUM], indexs: [usize; NUM]) -> Self {
+            for i in 0..NUM {
+                Self::check_index_len(&*linkages[i].borrow(), indexs[i]).expect("index is bigger than Vector lengthof linkage!");
+            }
+            PinJoint {
+                linkages: Vec::from(linkages),
+                joint_indexs: Vec::from(indexs),
+                tranceform: JointTranceform::Floated,
+            }
+        }
+        pub fn fix(mut self, point: Point2<f64>) -> Self {
+            self.tranceform = JointTranceform::FixedTo(point);
             self
         }
+        pub fn add_connection(mut self, linkage: Rc<RefCell<Linkage>>, index: usize) -> Self {
+            Self::check_index_len(&*linkage.borrow(), index).expect("index is bigger than Vector lengthof linkage!");
+            self.linkages.push(linkage);
+            self.joint_indexs.push(index);
+            self
+        }
+    }
+
+    impl Mechanism {
+        pub fn new() -> Self {
+            Mechanism {
+                joints: Vec::new(),
+                linkages: Vec::new(),
+            }
+        }
+        pub fn from_linkages<const NUM: usize>(linkages: [Linkage; NUM],) -> Self {
+            Mechanism {
+                joints: Vec::new(),
+                linkages: Vec::from(linkages.map(|linkage|Rc::new(RefCell::new(linkage))))
+            }
+        }
+        
     }
 }
