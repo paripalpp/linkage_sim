@@ -21,8 +21,19 @@ struct PinJoint {
 
 enum JointTranceform {
     FixedTo(Point2<f64>),
+    two_sol([Point2<f64>; 2]),
     Floated,
 }
+
+/// it will solve to point that A x B is active.
+/// invert is select negative one.
+/// (A is vector [joint_index_from] to [joint_index_to\[0\]] and B is to [joint_index_to\[1\]])
+pub struct solveHint {
+    joint_index_from: usize,
+    joint_index_to: [usize; 2],
+    invert: bool,
+}
+
 pub struct Linkage {
     joints: Vec<Vector2<f64>>,
     lines: Vec<[Vector2<f64>; 2]>,
@@ -101,13 +112,16 @@ impl Mechanism {
             linkages: Vec::from(linkages.map(|linkage|Rc::new(RefCell::new(linkage))))
         }
     }
+    pub fn set_angle_input(mut self, linkage_index: usize, angle: f64) -> Self{
+        self
+    }
     pub fn solve(mut self) -> Result<Self,SolveErr> {
         if {
             let mut fixed_joint = 0;
             for joint in &self.joints {
                 match joint.tranceform {
                     JointTranceform::FixedTo(_) => {fixed_joint += 1},
-                    JointTranceform::Floated => {},
+                    _ => {},
                 }
             }
             fixed_joint
