@@ -7,28 +7,38 @@ pub struct Mechanism {
     linkages: Vec<Rc<RefCell<Linkage>>>,
 }
 
+pub struct MechInput {
+    joint_index: usize,
+    linkage_index: usize,
+    rotation: Basis2<f64>,
+}
+
 #[derive(Error, Debug)]
 pub enum SolveErr{
     #[error("No anker founded. To solve Mechanism, You should fix 1 more joint.")]
-    no_anker,
+    NoAnker,
+    #[error("Hint shortage. To solve Mechanism, You should add {at} more hint.")]
+    SolveHintshortage{at: usize},
 }
 
+#[derive(Clone)]
 struct PinJoint {
     linkages: Vec<Rc<RefCell<Linkage>>>,
     joint_indexs: Vec<usize>,
     tranceform: JointTranceform,
 }
 
+#[derive(Clone)]
 enum JointTranceform {
     FixedTo(Point2<f64>),
-    two_sol([Point2<f64>; 2]),
+    TwoSolution([Point2<f64>; 2]),
     Floated,
 }
 
 /// it will solve to point that A x B is active.
 /// invert is select negative one.
 /// (A is vector [joint_index_from] to [joint_index_to\[0\]] and B is to [joint_index_to\[1\]])
-pub struct solveHint {
+pub struct SolveHint {
     joint_index_from: usize,
     joint_index_to: [usize; 2],
     invert: bool,
@@ -97,6 +107,20 @@ impl PinJoint{
         self.joint_indexs.push(index);
         self
     }
+    //search joint that have connection to same linkage
+    //return joint index vector
+    pub fn search_same_linkage(joints: Vec<Self>, linkage: &Rc<RefCell<Linkage>>) -> Vec<(usize, usize)> {
+        let mut ret = Vec::new();
+        for (i, joint) in joints.iter().enumerate() {
+            for (j, joint_linkage) in joint.linkages.iter().enumerate() {
+                if Rc::ptr_eq(&linkage, joint_linkage) {
+                    ret.push((i, joint.joint_indexs[j]));
+                    break;
+                }
+            }
+        }
+        ret
+    }
 }
 
 impl Mechanism {
@@ -109,13 +133,13 @@ impl Mechanism {
     pub fn from_linkages<const NUM: usize>(linkages: [Linkage; NUM],) -> Self {
         Mechanism {
             joints: Vec::new(),
-            linkages: Vec::from(linkages.map(|linkage|Rc::new(RefCell::new(linkage))))
+            linkages: Vec::from(linkages.map(|linkage|Rc::new(RefCell::new(linkage)))),
         }
     }
     pub fn set_angle_input(mut self, linkage_index: usize, angle: f64) -> Self{
         self
     }
-    pub fn solve(mut self) -> Result<Self,SolveErr> {
+    pub fn solve(&self, inputs: Vec<MechInput>) -> Result<Self,SolveErr> {
         if {
             let mut fixed_joint = 0;
             for joint in &self.joints {
@@ -125,7 +149,41 @@ impl Mechanism {
                 }
             }
             fixed_joint
-        } == 0 {return Err(SolveErr::no_anker)};
-        Ok(self)
+        } == 0 {return Err(SolveErr::NoAnker)};
+        let mut joints = self.joints.clone();
+        let mut input_solved = vec![false; inputs.len()];
+        let mut no_solution_count = 0;
+        while {
+            let mut solved_joint = 0;
+            for joint in joints {
+                match joint.tranceform {
+                    JointTranceform::Floated => {solved_joint += 1},
+                    _ => {},
+                }
+            }
+            solved_joint
+        } != joints.len() {
+            for (i, input) in inputs.iter().enumerate() {
+                match joints[input.joint_index].tranceform {
+                    JointTranceform::FixedTo(joint_cord) => {
+                        input_solved[i] = true;
+                        PinJoint::search_same_linkage(joints, &self.linkages[input.linkage_index]).iter().for_each(|(joint_index, linkage_index)|{
+                            let joint = &mut joints[*joint_index];
+                            match joint.tranceform {
+                                JointTranceform::Floated => {
+                                    joint.tranceform = JointTranceform::FixedTo();
+                                },
+                                _ => {},
+                            }
+                        });
+                    },
+                    _ => {},
+                }
+            }
+            for joint in &mut joints {
+
+            }
+        }
+        Ok(Self)
     }
 }
