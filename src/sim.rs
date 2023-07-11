@@ -1,5 +1,5 @@
 use std::{vec, option::Iter, rc::Rc, cell::RefCell, ops::Index, pin::Pin};
-use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Transform, Point2, Matrix3};
+use cgmath::{Vector2, Matrix2, Rad, Deg, Angle, Basis2, Transform, Point2, Matrix3, Rotation};
 use thiserror::Error;
 
 pub struct Mechanism {
@@ -10,6 +10,7 @@ pub struct Mechanism {
 pub struct MechInput {
     joint_index: usize,
     linkage_index: usize,
+    linkage_joint_index: usize,
     rotation: Basis2<f64>,
 }
 
@@ -17,8 +18,10 @@ pub struct MechInput {
 pub enum SolveErr{
     #[error("No anker founded. To solve Mechanism, You should fix 1 more joint.")]
     NoAnker,
-    #[error("Hint shortage. To solve Mechanism, You should add {at} more hint.")]
+    #[error("Hint shortage. To solve Mechanism, You should add more hint about joint at {at}.")]
     SolveHintshortage{at: usize},
+    #[error("Too much constraint on joint at {at}.")]
+    TooMuchConstraint{at: usize},
 }
 
 #[derive(Clone)]
@@ -140,6 +143,7 @@ impl Mechanism {
         self
     }
     pub fn solve(&self, inputs: Vec<MechInput>) -> Result<Self,SolveErr> {
+        // count fixed joint and return error if there is no anker 
         if {
             let mut fixed_joint = 0;
             for joint in &self.joints {
@@ -163,25 +167,65 @@ impl Mechanism {
             }
             solved_joint
         } != joints.len() {
+            //solve input
             for (i, input) in inputs.iter().enumerate() {
-                match joints[input.joint_index].tranceform {
-                    JointTranceform::FixedTo(joint_cord) => {
-                        input_solved[i] = true;
-                        PinJoint::search_same_linkage(joints, &self.linkages[input.linkage_index]).iter().for_each(|(joint_index, linkage_index)|{
-                            let joint = &mut joints[*joint_index];
-                            match joint.tranceform {
-                                JointTranceform::Floated => {
-                                    joint.tranceform = JointTranceform::FixedTo();
-                                },
-                                _ => {},
-                            }
-                        });
-                    },
-                    _ => {},
+                if input_solved[i] == false {
+                    match joints[input.joint_index].tranceform {
+                        JointTranceform::FixedTo(joint_cord) => {
+                            PinJoint::search_same_linkage(joints, &self.linkages[input.linkage_index]).iter().for_each(|(joint_index, linkage_joint_index)|{
+                                let linkage = self.linkages[input.linkage_index].borrow();
+                                let joint = &mut joints[*joint_index];
+                                match joint.tranceform {
+                                    JointTranceform::Floated => {
+                                        joint.tranceform = JointTranceform::FixedTo(input.rotation.rotate_vector(linkage.joints[*linkage_joint_index] - linkage.joints[input.linkage_joint_index]).into() + joint_cord);
+                                    },
+                                    _ => {},
+                                }
+                            });
+                            input_solved[i] = true;
+                        },
+                        _ => {},
+                    }
                 }
             }
-            for joint in &mut joints {
-
+            //solve linkage
+            for (i, joint) in joints.iter_mut().enumerate() {
+                match joint.tranceform {
+                    JointTranceform::Floated => {
+                        match {
+                            // check joint could be solved
+                            let mut fixed_joint_count = 0;
+                            let mut fixed_joint_index = [0; 2];
+                            let mut fixed_linkage_index = [0; 2];
+                            let mut fixed_linkage_joint_index = [0; 2];
+                            joint.linkages.iter().enumerate().for_each(|i, linkage| {
+                                PinJoint::search_same_linkage(joints, linkage).iter().for_each(|(joint_index, linkage_joint_index)|{
+                                    if let JointTranceform::FixedTo(_) = joints[*joint_index].tranceform {
+                                        if let 3 = fixed_joint_count {
+                                            return;
+                                        }
+                                        fixed_joint_index[fixed_joint_count] = *joint_index;
+                                        fixed_linkage_index[fixed_joint_count] = i;
+                                        fixed_linkage_joint_index[fixed_joint_count] = linkage_joint_index;
+                                        fixed_joint_count += 1;
+                                    }
+                                });
+                            });
+                            (fixed_joint_count, fixed_joint_index, fixed_linkage_index, fixed_linkage_joint_index)
+                        } {
+                            //if 2 degree constraint is applied, solve joint
+                            (2, fixed_joint_index, fixed_linkage_index, fixed_linkage_joint_index) => {
+                                let fixed_linkage = [self.linkages[fixed_linkage_index[0]].borrow(), self.linkages[fixed_linkage_index[1]].borrow()];
+                                let fixed_joint = [joints[fixed_joint_index[0]], joints[fixed_joint_index[1]]];
+                                let fixed_linkage_joint = [fixed_linkage[0].joints[fixed_linkage_joint_index[0]], fixed_linkage[1].joints[fixed_linkage_joint_index[1]]];
+                                
+                            },
+                            //if over 3 degree constraint is applied, return error
+                            (count,_,_,_) if count >= 3 => {return Err(SolveErr::TooMuchConstraint { at: i })},
+                            _ => {},
+                        }
+                    },
+                    _ => {},
             }
         }
         Ok(Self)
