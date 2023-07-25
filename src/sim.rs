@@ -226,6 +226,7 @@ impl Mechanism {
                         }
                     },
                     _ => {},
+                }
             }
         }
         Ok(Self)
