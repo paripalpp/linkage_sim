@@ -25,7 +25,7 @@ use druid::{
 };
 use std::{vec, boxed};
 
-mod sim;
+mod mech_solver;
 
 #[derive(Clone, PartialEq)]
 struct LinkageShow {
