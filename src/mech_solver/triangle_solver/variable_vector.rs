@@ -88,6 +88,17 @@ impl<T> ops::Div for VariableF<T>
     }
 }
 
+impl<T> PartialOrd for VariableF<T>
+    where T: Float + FromPrimitive 
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (VariableF::Fixed(a), VariableF::Fixed(b)) => a.partial_cmp(b).unwrap(),
+            _ => std::cmp::Ordering::Equal,
+        }
+    }
+}
+
 
 //polar coordinated 2D vector
 #[derive(Debug, Clone, Copy)]

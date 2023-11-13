@@ -93,13 +93,17 @@ impl Triangle{
     // a has unknown angle and b has unknown length
     fn solve_pattern3(self) -> Result<Self,Error> {
         // write later
-        Ok(self)
+        return Err(Error::new(std::io::ErrorKind::Other, "solve error : method \"solve_pattern3\" is not implemented"));
     }
     //pattern4
     // two vectors that have unknown angle exist
     // a and b has unknown angle
     fn solve_pattern4(self) -> Result<Self,Error> {
-        // write later
+        if self.a.radius > self.b.radius + self.c.radius ||
+            self.b.radius > self.c.radius + self.a.radius ||
+            self.c.radius > self.a.radius + self.b.radius {return Err(Error::new(std::io::ErrorKind::Other, "solve error : In this condition, it CANNOT be triangle"));}
+        let sol1 = ;
+        let sol2 = ;
         Ok(self)
     }
 }
