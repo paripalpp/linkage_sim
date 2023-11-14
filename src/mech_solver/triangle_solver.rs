@@ -1,5 +1,5 @@
 pub mod variable_vector;
-use std::io::Error;
+use std::{io::Error};
 
 use variable_vector::*;
 
@@ -8,9 +8,9 @@ use variable_vector::*;
 //   ← c
 #[derive(Debug, Clone, Copy)]
 pub struct Triangle{
-    a : variable_vector::VariableFPolVec2,
-    b : variable_vector::VariableFPolVec2,
-    c : variable_vector::VariableFPolVec2,
+    pub a : variable_vector::VariableFPolVec2,
+    pub b : variable_vector::VariableFPolVec2,
+    pub c : variable_vector::VariableFPolVec2,
 }
 
 impl variable_vector::Variable for Triangle{
@@ -43,7 +43,7 @@ impl Triangle{
     }
     pub fn solve(mut self) -> Result<Self, Error>{
         if self.get_dof() > 2 {return Err(Error::new(std::io::ErrorKind::Other, "solve error : dof > 2"));}
-        match(self.a.get_dof(), self.b.get_dof(), self.get_dof()){
+        match(self.a.get_dof(), self.b.get_dof(), self.c.get_dof()){
             (1|2, 0, 0) => self = self.solve_pattern1(),
             (0, 1|2, 0) => self = self.swap_cw().swap_cw().solve_pattern1().swap_cw(),
             (0, 0, 1|2) => self = self.swap_cw().solve_pattern1().swap_cw().swap_cw(),
@@ -52,9 +52,9 @@ impl Triangle{
                     (1,0,1,0,0,0) => self = self.solve_pattern2()?,
                     (0,0,1,0,1,0) => self = self.swap_cw().swap_cw().solve_pattern2()?.swap_cw(),
                     (1,0,0,0,1,0) => self = self.swap_cw().solve_pattern2()?.swap_cw().swap_cw(),
-                    () => self = self.solve_pattern3()?,
-                    () => self = self.swap_cw().swap_cw().solve_pattern3()?.swap_cw(),
-                    () => self = self.swap_cw().solve_pattern3()?.swap_cw().swap_cw(),
+                    (0,1,1,0,0,0) => self = self.solve_pattern3()?,
+                    (0,0,0,1,1,0) => self = self.swap_cw().swap_cw().solve_pattern3()?.swap_cw(),
+                    (1,0,0,0,0,1) => self = self.swap_cw().solve_pattern3()?.swap_cw().swap_cw(),
                     (0,1,0,1,0,0) => self = self.solve_pattern4()?,
                     (0,0,0,1,0,1) => self = self.swap_cw().swap_cw().solve_pattern4()?.swap_cw(),
                     (0,1,0,0,0,1) => self = self.swap_cw().solve_pattern4()?.swap_cw().swap_cw(),
@@ -98,12 +98,22 @@ impl Triangle{
     //pattern4
     // two vectors that have unknown angle exist
     // a and b has unknown angle
-    fn solve_pattern4(self) -> Result<Self,Error> {
+    fn solve_pattern4(mut self) -> Result<Self,Error> {
         if self.a.radius > self.b.radius + self.c.radius ||
             self.b.radius > self.c.radius + self.a.radius ||
             self.c.radius > self.a.radius + self.b.radius {return Err(Error::new(std::io::ErrorKind::Other, "solve error : In this condition, it CANNOT be triangle"));}
-        let sol1 = ;
-        let sol2 = ;
+        let sol1_a_theta = -(self.c).theta + ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
+        let sol1_b_theta = self.c.theta - ((self.a.radius * self.a.radius - self.b.radius * self.b.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.b.radius * self.c.radius)).acos();
+        let sol2_a_theta = -(self.c).theta - ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
+        let sol2_b_theta = self.c.theta + ((self.a.radius * self.a.radius - self.b.radius * self.b.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.b.radius * self.c.radius)).acos();
+        let sol1_a = VariableFPolVec2{radius : self.a.radius, theta : sol1_a_theta};
+        if cross_product(sol1_a.to_rec(), self.c.to_rec()) > VariableF::from(0.0) {
+            self.a.theta = sol1_a_theta;
+            self.b.theta = sol1_b_theta;
+        } else {
+            self.a.theta = sol2_a_theta;
+            self.b.theta = sol2_b_theta;
+        }
         Ok(self)
     }
 }

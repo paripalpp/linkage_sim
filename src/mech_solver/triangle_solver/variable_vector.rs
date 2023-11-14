@@ -1,4 +1,4 @@
-use std::ops;
+use std::{ops, cmp::Ordering};
 use num_traits::{Float, FromPrimitive};
 
 
@@ -91,10 +91,47 @@ impl<T> ops::Div for VariableF<T>
 impl<T> PartialOrd for VariableF<T>
     where T: Float + FromPrimitive 
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
-            (VariableF::Fixed(a), VariableF::Fixed(b)) => a.partial_cmp(b).unwrap(),
-            _ => std::cmp::Ordering::Equal,
+            (VariableF::Fixed(a), VariableF::Fixed(b)) => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
+impl<T> From<T> for VariableF<T>
+    where T: Float + FromPrimitive 
+{
+    fn from(t: T) -> Self {
+        VariableF::Fixed(t)
+    }
+}
+impl<T> VariableF<T>
+    where T: Float + FromPrimitive
+{
+    
+    pub fn cos(&self) -> Self {
+        match self {
+            VariableF::Fixed(a) => VariableF::Fixed(a.cos()),
+            VariableF::Unknown => VariableF::Unknown,
+        }
+    }
+    pub fn sin(&self) -> Self {
+        match self {
+            VariableF::Fixed(a) => VariableF::Fixed(a.sin()),
+            VariableF::Unknown => VariableF::Unknown,
+        }
+    }
+    pub fn acos(&self) -> Self {
+        match self {
+            VariableF::Fixed(a) => VariableF::Fixed(a.acos()),
+            VariableF::Unknown => VariableF::Unknown,
+        }
+    }
+    pub fn asin(&self) -> Self {
+        match self {
+            VariableF::Fixed(a) => VariableF::Fixed(a.asin()),
+            VariableF::Unknown => VariableF::Unknown,
         }
     }
 }
