@@ -1,5 +1,5 @@
 pub mod variable_vector;
-use std::{io::Error};
+use std::io::Error;
 
 use variable_vector::*;
 
@@ -102,9 +102,9 @@ impl Triangle{
         if self.a.radius > self.b.radius + self.c.radius ||
             self.b.radius > self.c.radius + self.a.radius ||
             self.c.radius > self.a.radius + self.b.radius {return Err(Error::new(std::io::ErrorKind::Other, "solve error : In this condition, it CANNOT be triangle"));}
-        let sol1_a_theta = -(self.c).theta + ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
+        let sol1_a_theta = (self.c).theta + ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
         let sol1_b_theta = self.c.theta - ((self.a.radius * self.a.radius - self.b.radius * self.b.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.b.radius * self.c.radius)).acos();
-        let sol2_a_theta = -(self.c).theta - ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
+        let sol2_a_theta = (self.c).theta - ((self.b.radius * self.b.radius - self.a.radius * self.a.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.a.radius * self.c.radius)).acos();
         let sol2_b_theta = self.c.theta + ((self.a.radius * self.a.radius - self.b.radius * self.b.radius - self.c.radius * self.c.radius) / (VariableF::from(2.0) * self.b.radius * self.c.radius)).acos();
         let sol1_a = VariableFPolVec2{radius : self.a.radius, theta : sol1_a_theta};
         if cross_product(sol1_a.to_rec(), self.c.to_rec()) > VariableF::from(0.0) {

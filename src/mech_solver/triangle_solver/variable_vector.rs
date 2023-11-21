@@ -215,8 +215,8 @@ impl ops::Div<f64> for VariableFPolVec2
 //rectangular coordinated 2D vector
 #[derive(Debug, Clone, Copy)]
 pub struct VariableFRecVec2{
-    x : VariableF<f64>,
-    y : VariableF<f64>,
+    pub x : VariableF<f64>,
+    pub y : VariableF<f64>,
 }
 
 impl VariableFRecVec2 {
