@@ -1,6 +1,7 @@
 mod mech_solver;
 mod scissor_solver;
 use std::f64::consts::PI;
+use num_traits::Float;
 use plotters::prelude::*;
 
 use mech_solver::triangle_solver::*;
@@ -64,6 +65,102 @@ pub fn run_triangle_test(){
             backend.draw_line((originx, originy), (originx+ax,originy+ay), &RED).unwrap();
             backend.draw_line((originx+ax,originy+ay), (originx+ax+bx,originy+ay+by), &GREEN).unwrap();
             backend.draw_line((originx+ax+bx,originy+ay+by), (originx+ax+bx+cx,originy+ay+by+cy), &BLUE).unwrap();
+        }else {
+            println!("not fixed");
+        }
+    }
+}
+
+pub fn run_crosslink_test(){
+    let mut backend = BitMapBackend::new("backend.png", (640, 480));
+    backend.draw_rect((0, 0), (640, 480), &WHITE, true).unwrap();
+    let dx_zero = 600.0;
+    let dy_zero = 20.0;
+    let dx_scale = 300.0;
+    let dy_scale = -300.0;
+    let e1 : f64 = 1.0;
+    let e2 : f64 = 1.414 * 0.9;
+    let e3 : f64 = 1.414 * 0.75;
+    let e4 : f64 = 1.0 * 1.1;
+    let i1 : f64 = 0.6;
+    let i2 : f64 = 1.5;
+    let step_num : isize = 20;
+    let step : f64 = (i2 - i1) / (step_num as f64);
+    let mut tr1 = Triangle::from_len([e1, e2, i1]);
+    let mut tr2 = Triangle::from_len([e3, e4, i1]);
+    tr1.a.theta = VariableF::Fixed(-PI/2.0);
+    for i in 0..2{
+        if(i == 0){
+            tr1.c.radius = VariableF::Fixed(i1);
+            tr2.c.radius = VariableF::Fixed(i1);
+        }else{
+            tr1.c.radius = VariableF::Fixed(i2);
+            tr2.c.radius = VariableF::Fixed(i2);
+        }
+        let mut tr1 = tr1.clone();
+        let mut tr2 = tr2.clone();
+        tr1 = tr1.solve().unwrap();
+        tr2.c.theta = tr1.c.theta;
+        tr2 = tr2.solve().unwrap();
+        //draw e1~4 black
+        if let (
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e1x), y: VariableF::<f64>::Fixed(e1y)}, 
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e2x), y: VariableF::<f64>::Fixed(e2y)}, 
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e3x), y: VariableF::<f64>::Fixed(e3y)},
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e4x), y: VariableF::<f64>::Fixed(e4y)},
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(i1x), y: VariableF::<f64>::Fixed(i1y)},
+        ) = (tr1.a.to_rec(), tr1.b.to_rec(), tr2.a.to_rec(), tr2.b.to_rec(), tr1.c.to_rec()) {
+            backend.draw_line(
+                ((dx_zero) as i32, (dy_zero) as i32), 
+                ((e1x * dx_scale + dx_zero) as i32, (e1y * dy_scale + dy_zero) as i32), 
+                &BLACK
+            ).unwrap();
+            backend.draw_line(
+                ((e1x * dx_scale + dx_zero) as i32, (e1y * dy_scale + dy_zero) as i32), 
+                ((e1x * dx_scale + dx_zero + e2x * dx_scale) as i32, (e1y * dy_scale + dy_zero + e2y * dy_scale) as i32), 
+                &BLACK
+            ).unwrap();
+            backend.draw_line(
+                ((dx_zero) as i32, (dy_zero) as i32), 
+                ((e3x * dx_scale + dx_zero) as i32, (e3y * dy_scale + dy_zero) as i32), 
+                &BLACK
+            ).unwrap();
+            backend.draw_line(
+                ((e3x * dx_scale + dx_zero) as i32, (e3y * dy_scale + dy_zero) as i32), 
+                ((e3x * dx_scale + dx_zero + e4x * dx_scale) as i32, (e3y * dy_scale + dy_zero + e4y * dy_scale) as i32), 
+                &BLACK
+            ).unwrap();
+            //draw i1 BLUE
+            backend.draw_line(
+                ((e1x * dx_scale + dx_zero + e2x * dx_scale) as i32, (e1y * dy_scale + dy_zero + e2y * dy_scale) as i32), 
+                ((i1x * dx_scale + e1x * dx_scale + e2x * dx_scale + dx_zero) as i32, (i1y * dy_scale + e1y * dy_scale + e2y * dy_scale + dy_zero) as i32), 
+                &BLUE
+            ).unwrap();
+        }else {
+            println!("not fixed");
+        }
+
+    }
+    //draw path in red
+    for i in 0..step_num {
+        let mut tr1 = tr1.clone();
+        let mut tr2 = tr2.clone();
+        tr1.a.theta = VariableF::Fixed(-PI/2.0);
+        tr1.c.radius = VariableF::Fixed(i1 + step * (i as f64));
+        tr2.c.radius = VariableF::Fixed(i1 + step * (i as f64));
+        tr1 = tr1.solve().unwrap();
+        tr2.c.theta = tr1.c.theta;
+        tr2 = tr2.solve().unwrap();
+        if let (
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e1x), y: VariableF::<f64>::Fixed(e1y)},
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e2x), y: VariableF::<f64>::Fixed(e2y)},
+            VariableFRecVec2{x: VariableF::<f64>::Fixed(e3x), y: VariableF::<f64>::Fixed(e3y)},
+        ) = (tr1.a.to_rec(), tr1.b.to_rec(), tr2.a.to_rec()) {
+            backend.draw_line(
+                ((e1x * dx_scale + dx_zero + e2x * dx_scale) as i32, (e1y * dy_scale + dy_zero + e2y * dy_scale) as i32), 
+                ((e3x * dx_scale + dx_zero) as i32, (e3y * dy_scale + dy_zero) as i32), 
+                &RED
+            ).unwrap();
         }else {
             println!("not fixed");
         }
