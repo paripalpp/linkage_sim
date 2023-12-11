@@ -1,3 +1,5 @@
+use core::slice;
+
 use plotters::{prelude::*, backend};
 use crate::mech_solver;
 
@@ -7,6 +9,8 @@ use mech_solver::triangle_solver::{Triangle,variable_vector::{self, VariableF}};
 // b : length of the element right up to the left
 // c : distance from a origin to cross point of a and b
 // d : distance from b origin to cross point of a and b
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ScissorDimension{
     pub a: f64,
     pub b: f64,
@@ -33,6 +37,29 @@ impl ScissorElement{
         self.a.theta = self.c.theta;
         self.b.theta = self.d.theta;
         Ok(self.a - self.b -input)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn create_sizzor_dimension_array(size: usize) -> *const ScissorDimension {
+    let vec: Vec<ScissorDimension> = vec![ScissorDimension{a:1.0, b:1.0, c:0.5, d:0.5}; size];
+    let slice = vec.into_boxed_slice();
+    Box::into_raw(slice) as *const ScissorDimension
+}
+
+#[no_mangle]
+pub extern "C" fn get_sizzor_dimension_array_element(array: *const ScissorDimension, index: usize) -> ScissorDimension {
+    let slice = unsafe { std::slice::from_raw_parts(array, index + 1) };
+    slice[index]
+}
+
+#[no_mangle]
+pub extern "C" fn set_sizzor_dimension_array_element(array: *mut ScissorDimension, index: usize, value: ScissorDimension) {
+    unsafe {
+        // 簡素化のためにindexが範囲内にあるか確認するなど、必要なチェックをチェックを省略しています。
+        
+        let array_ptr = array.add(index);
+        array_ptr.write(value);
     }
 }
 

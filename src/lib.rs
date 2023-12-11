@@ -10,8 +10,11 @@ use mech_solver::triangle_solver::variable_vector::VariableF;
 
 use crate::mech_solver::triangle_solver::variable_vector::{Variable, VariableFRecVec2, VariableFPolVec2};
 
-pub fn run_scissor_test(){
-    let mut backend = BitMapBackend::new("backend.png", (480, 480));
+pub use scissor_solver::{ScissorDimension, create_sizzor_dimension_array, get_sizzor_dimension_array_element, set_sizzor_dimension_array_element};
+
+#[no_mangle]
+pub extern "C" fn run_scissor_test(){
+    let mut backend = BitMapBackend::new("scissor_test.png", (480, 480));
     backend.draw_rect((0, 0), (480, 480), &WHITE, true).unwrap();
     let origin_scissor = scissor_solver::Scissor::new(vec![
         scissor_solver::ScissorDimension{a: 1.0, b: 1.0, c: 0.6, d: 0.4},
@@ -34,8 +37,9 @@ pub fn run_scissor_test(){
     }
 }
 
-pub fn run_triangle_test(){
-    let mut backend = BitMapBackend::new("backend.png", (640, 480));
+#[no_mangle]
+pub extern "C" fn run_triangle_test(){
+    let mut backend = BitMapBackend::new("triangle_test.png", (640, 480));
     backend.draw_rect((0, 0), (640, 480), &WHITE, true).unwrap();
     let original_triangle = Triangle::from_len([1.0, 1.0, 1.0]);
     for i in 0..5{
@@ -71,8 +75,9 @@ pub fn run_triangle_test(){
     }
 }
 
-pub fn run_crosslink_test(){
-    let mut backend = BitMapBackend::new("backend.png", (640, 480));
+#[no_mangle]
+pub extern "C" fn run_crosslink_test(){
+    let mut backend = BitMapBackend::new("crosslink_test.png", (640, 480));
     backend.draw_rect((0, 0), (640, 480), &WHITE, true).unwrap();
     let dx_zero = 600.0;
     let dy_zero = 20.0;
@@ -165,4 +170,9 @@ pub fn run_crosslink_test(){
             println!("not fixed");
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn add(a: i32, b: i32) -> i32 {
+    a + b
 }

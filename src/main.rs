@@ -1,4 +1,4 @@
 
 fn main() {
-    linkage_sim::run_crosslink_test();
+    // linkage_sim::run_crosslink_test();
 }
