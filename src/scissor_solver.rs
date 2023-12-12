@@ -41,26 +41,33 @@ impl ScissorElement{
 }
 
 #[no_mangle]
-pub extern "C" fn create_sizzor_dimension_array(size: usize) -> *const ScissorDimension {
+pub extern "C" fn create_scissor_dimension_array(size: usize) -> *const ScissorDimension {
     let vec: Vec<ScissorDimension> = vec![ScissorDimension{a:1.0, b:1.0, c:0.5, d:0.5}; size];
     let slice = vec.into_boxed_slice();
     Box::into_raw(slice) as *const ScissorDimension
 }
 
 #[no_mangle]
-pub extern "C" fn get_sizzor_dimension_array_element(array: *const ScissorDimension, index: usize) -> ScissorDimension {
+pub extern "C" fn get_scissor_dimension_array_element(array: *const ScissorDimension, index: usize) -> ScissorDimension {
     let slice = unsafe { std::slice::from_raw_parts(array, index + 1) };
     slice[index]
 }
 
 #[no_mangle]
-pub extern "C" fn set_sizzor_dimension_array_element(array: *mut ScissorDimension, index: usize, value: ScissorDimension) {
+pub extern "C" fn set_scissor_dimension_array_element(array: *mut ScissorDimension, index: usize, value: ScissorDimension) {
     unsafe {
         // 簡素化のためにindexが範囲内にあるか確認するなど、必要なチェックをチェックを省略しています。
         
         let array_ptr = array.add(index);
         array_ptr.write(value);
     }
+}
+
+#[no_mangle]
+pub extern "C" fn solve_from_scissor_dimension_array(array: *const ScissorDimension, len: usize, input_radius: f64, input_theta: f64) {
+    let slice = unsafe { std::slice::from_raw_parts(array, len) };
+    let mut scissor = Scissor::new(slice.to_vec());
+    scissor.solve(variable_vector::VariableFPolVec2::from(input_radius, input_theta)).unwrap();
 }
 
 #[derive(Clone)]

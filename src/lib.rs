@@ -10,7 +10,7 @@ use mech_solver::triangle_solver::variable_vector::VariableF;
 
 use crate::mech_solver::triangle_solver::variable_vector::{Variable, VariableFRecVec2, VariableFPolVec2};
 
-pub use scissor_solver::{ScissorDimension, create_sizzor_dimension_array, get_sizzor_dimension_array_element, set_sizzor_dimension_array_element};
+pub use scissor_solver::{ScissorDimension, create_scissor_dimension_array, get_scissor_dimension_array_element, set_scissor_dimension_array_element};
 
 #[no_mangle]
 pub extern "C" fn run_scissor_test(){
