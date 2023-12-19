@@ -63,11 +63,74 @@ pub extern "C" fn set_scissor_dimension_array_element(array: *mut ScissorDimensi
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct line {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct solve_scissor_return{
+    pub error: isize,
+    pub num_lines: usize,
+    pub lines: *const line,
+}
+
 #[no_mangle]
-pub extern "C" fn solve_from_scissor_dimension_array(array: *const ScissorDimension, len: usize, input_radius: f64, input_theta: f64) {
+pub extern "C" fn solve_from_scissor_dimension_array(array: *const ScissorDimension, len: usize, input_radius: f64, input_theta: f64) -> solve_scissor_return {
     let slice = unsafe { std::slice::from_raw_parts(array, len) };
     let mut scissor = Scissor::new(slice.to_vec());
-    scissor.solve(variable_vector::VariableFPolVec2::from(input_radius, input_theta)).unwrap();
+    if let Err(_) = scissor.solve(variable_vector::VariableFPolVec2::from(input_radius, input_theta)) {
+        return solve_scissor_return{
+            error: 1,
+            num_lines: 0,
+            lines: std::ptr::null(),
+        };
+    }
+    let mut lines = Vec::<line>::new();
+    let mut next_vec_origin = (0.0, 0.0);
+    let mut next_vec_input = 
+    if let variable_vector::VariableFRecVec2{x: VariableF::Fixed(x),y: VariableF::Fixed(y)} = scissor.input.to_rec(){
+        (x, y)
+    }else{
+        panic!("input must be fixed");
+    };
+    for i in 0..len{
+        let element = &scissor.elements[i];
+        if let (
+            variable_vector::VariableFRecVec2{x: VariableF::<f64>::Fixed(ax), y: VariableF::<f64>::Fixed(ay)},
+            variable_vector::VariableFRecVec2{x: VariableF::<f64>::Fixed(bx), y: VariableF::<f64>::Fixed(by)}
+        ) = (element.a.to_rec(), element.b.to_rec()) {
+            lines.push(line{
+                x1: next_vec_origin.0,
+                y1: next_vec_origin.1,
+                x2: next_vec_origin.0 + ax,
+                y2: next_vec_origin.1 + ay,
+            });
+            lines.push(line{
+                x1: next_vec_origin.0 + next_vec_input.0,
+                y1: next_vec_origin.1 + next_vec_input.1,
+                x2: next_vec_origin.0 + next_vec_input.0 + bx,
+                y2: next_vec_origin.1 + next_vec_input.1 + by,
+            });
+            next_vec_origin.0 = next_vec_origin.0 + next_vec_input.0 + bx;
+            next_vec_origin.1 = next_vec_origin.1 + next_vec_input.1 + by;
+            next_vec_input.0 = ax - next_vec_input.0 - bx;
+            next_vec_input.1 = ay - next_vec_input.1 - by;
+        }else{
+            panic!("not fixed at element {}", i);
+        }
+    }
+    let lines_slice = lines.into_boxed_slice();
+    solve_scissor_return{
+        error: 0,
+        num_lines: lines_slice.len(),
+        lines: Box::into_raw(lines_slice) as *const line,
+    }
 }
 
 #[derive(Clone)]
