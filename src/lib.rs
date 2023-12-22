@@ -1,15 +1,13 @@
 mod mech_solver;
 mod scissor_solver;
+mod optimization;
+pub mod bezier;
 use std::f64::consts::PI;
-use num_traits::Float;
 use plotters::prelude::*;
 
 use mech_solver::triangle_solver::*;
-
 use mech_solver::triangle_solver::variable_vector::VariableF;
-
-use crate::mech_solver::triangle_solver::variable_vector::{Variable, VariableFRecVec2, VariableFPolVec2};
-
+use crate::mech_solver::triangle_solver::variable_vector::{VariableFRecVec2, VariableFPolVec2};
 pub use scissor_solver::{ScissorDimension, create_scissor_dimension_array, get_scissor_dimension_array_element, set_scissor_dimension_array_element};
 
 #[no_mangle]
@@ -95,7 +93,7 @@ pub extern "C" fn run_crosslink_test(){
     let mut tr2 = Triangle::from_len([e3, e4, i1]);
     tr1.a.theta = VariableF::Fixed(-PI/2.0);
     for i in 0..2{
-        if(i == 0){
+        if i == 0 {
             tr1.c.radius = VariableF::Fixed(i1);
             tr2.c.radius = VariableF::Fixed(i1);
         }else{

@@ -12,6 +12,8 @@ crate-type = ["cdylib"]
 cgmath = "0.18.0"
 thiserror = "1.0"
 num-traits = "0.2"
+argmin = { version = "0.8" }
+argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_latest-serde"] }
 plotters = "0.3.3"
 
 [dependencies.druid]
