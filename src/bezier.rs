@@ -29,18 +29,33 @@ impl Curve {
         let y = mt3 * self.p0.y + 3.0 * mt2 * t * self.p1.y + 3.0 * mt * t2 * self.p2.y + t3 * self.p3.y;
         Point2::new(x, y)
     }
-    pub fn distance_to_point(&self, p: Point2<f64>) -> f64 {
+    pub fn distance_to_point(&self, p: Point2<f64>) -> (f64, Point2<f64>) {
         let mut min = f64::MAX;
+        let mut min_point = self.p0;
         let mut t = 0.0;
         let step = 0.01;
         while t < 1.0 {
-            let d = self.point_at(t).distance2(p);
+            let p = self.point_at(t);
+            let d = p.distance2(p);
             if d < min {
                 min = d;
+                min_point = p;
             }
             t += step;
         }
-        min
+        (min, min_point)
+    }
+    pub fn len(&self) -> f64 {
+        let mut len = 0.0;
+        let mut t = 0.0;
+        let step = 0.01;
+        while t < 1.0 {
+            let p1 = self.point_at(t);
+            let p2 = self.point_at(t + step);
+            len += p1.distance2(p2);
+            t += step;
+        }
+        len
     }
     pub fn draw(&self, plotter_backend : &mut BitMapBackend, scale: f64, color: &RGBColor){
         let size = plotter_backend.get_size();
